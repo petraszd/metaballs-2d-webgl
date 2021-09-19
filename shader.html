@@ -1,0 +1,177 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Petras Zdanavičius: MetaBalls 2D: Shader</title>
+  <script type="text/javascript" charset="utf-8" src="shader.js"></script>
+  <style>
+    html, body {
+      background-color: #C8D6BF;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      color: #1A1F1E;
+      font-family: sans-serif;
+    }
+    h1 {
+      color: #C8D6BF;
+      font-family: sans-serif;
+      padding: 0 0 5px 0;
+      margin: 0;
+      font-size: 19px;
+      font-weight: normal;
+    }
+    a {
+      color: #137A6E;
+    }
+    p {
+      margin: 0 0 5px 0;
+    }
+    p.err {
+      padding: 0;
+      color: #e00;
+      font-size: 140%;
+    }
+    #errors {
+      border: 3px solid #f00;
+      padding: 5px 10px;
+      background-color: #efefef;
+    }
+    #top {
+      padding: 10px 0 15px 0;
+      background-color: #1A1F1E;
+      box-shadow: 0 5px 5px #000;
+    }
+    .wrapper {
+      width: 800px;
+      margin: 0 auto;
+    }
+    #inputs {
+      padding-top: 10px;
+    }
+    #footer {
+      padding-top: 30px;
+      color: #3A4644;
+      font-size: 80%;
+    }
+    label {
+      padding-right: 20px;
+      text-shadow: 1px 1px #dfdfdf;
+      font-weight: bold;
+    }
+    input {
+      font-size: 120%;
+      width: 80px;
+      color: #444;
+      text-align: right;
+    }
+    #share {
+      float: right;
+      padding-top: 5px;
+    }
+  </style>
+</head>
+<body onload="init();">
+  <div id="top">
+    <div class="wrapper">
+      <h1>2D Metaballs</h1>
+      <canvas id="canvas" width="800" height="400"></canvas>
+      <div id="errors" style="display: none;"></div>
+    </div>
+  </div>
+  <div id="inputs">
+    <div class="wrapper">
+      <div id="share">
+        <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
+        <script>!function(d,s,id){var
+          js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="http://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+
+        <br/>
+
+        <div class="g-plusone" data-size="medium"></div>
+        <script type="text/javascript">
+          (function() {
+            var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+            po.src = 'https://apis.google.com/js/plusone.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+          })();
+        </script>
+      </div>
+      <label>Threshold 1: <input id="size"  type="text" /></label>
+      <label>Threshold 2: <input id="bloom" type="text" /></label>
+      <label>Speed: <input id="speed" type="text" /></label>
+    </div>
+  </div>
+  <div id="footer">
+    <div class="wrapper">
+      <p>
+      Source code: <a href="https://bitbucket.org/petraszd/metaballs-2d-webgl">https://bitbucket.org/petraszd/metaballs-2d-webgl</a>
+      </p>
+      <p>
+      © Copyright 2013 Petras Zdanavičius (<a href="http://petraszd.com">http://petraszd.com</a>). All Rights Reserved.
+      </p>
+    </div>
+  </div>
+  <script id="shader-fs" type="x-shader/x-fragment">
+    precision lowp float;
+
+    uniform sampler2D uPositionTex;
+    uniform float uSize;
+    uniform float uBloom;
+    uniform float uColor;
+
+    varying vec4 position;
+
+    const float DIM = 16.0;
+    const int iDIM = int(DIM);
+
+    void main(void) {
+      float acc = 0.0;
+
+      float T1 = uSize;
+      float T2 = uBloom;
+
+      float x, y;
+      for (int i = 0; i < iDIM; ++i) {
+        vec4 tex = texture2D(uPositionTex, vec2(float(i) / DIM, 0));
+        if (tex.r == 0.0) {
+          break;
+        }
+        x = position.x - tex.r;
+        y = position.y - tex.g;
+        acc += 1.0 / (x * x + y * y);
+
+        if (tex.b == 0.0) {
+          break;
+        }
+        x = position.x - tex.b;
+        y = position.y - tex.a;
+        acc += 1.0 / (x * x + y * y);
+      }
+
+      float a = 0.0;
+      if (acc > T1) {
+        a = 1.0;
+      } else if (acc > T2) {
+        a = (acc - T2) / (T1 - T2);
+      }
+
+      float t = (position.x / 800.0 + uColor) / 2.0;
+      gl_FragColor = vec4(a * t, 0.0, a * (1.0 - t), 1.0);
+    }
+  </script>
+  <script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec4 aPosition;
+
+    varying vec4 position;
+
+    void main(void) {
+      position = vec4(aPosition.xyz, 1.0);
+      gl_Position = position * 2.0 - vec4(1.0, 1.0, 1.0, 1.0);
+
+      position *= vec4(800, 400.0, 1.0, 1.0);
+    }
+  </script>
+</body>
+</html>
